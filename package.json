@@ -1,0 +1,8 @@
+{
+  "name": "fintech-embedding-risk-service",
+  "private": true,
+  "type": "module",
+  "scripts": {"typecheck": "tsc --noEmit", "test": "tsx test/risk_decision.test.ts", "demo": "tsx src/payment_workflow.ts"},
+  "dependencies": {"openai": "^4.70.0", "zod": "^3.23.8"},
+  "devDependencies": {"tsx": "^4.19.2", "typescript": "^5.6.3"}
+}

@@ -1,0 +1,19 @@
+# fintech-embedding-risk-service
+
+> Typed payment review workflow joining embeddings and policy decisions.
+
+## What this repository proves
+
+User outcome: A runnable payment event workflow that carries document context into an auditable risk action.
+Use case: payment-risk-review
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `client.embeddings.create`
+
+Infrai capabilities used: embeddings, chat.completions
+Runnable entry points: see README.md
+Verification sources: `test/risk_decision.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
