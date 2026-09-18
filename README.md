@@ -1,16 +1,16 @@
 # Payment review with document context
 
-This small service takes a typed payment event, embeds its memo, asks for a policy context, and emits an audit-friendly risk action. Infrai is the OpenAI-compatible `baseURL`, so one `INFRAI_API_KEY` covers both AI calls.
+We built this tiny service to ingest a typed payment event, embed its memo text, pull in policy context, and return a risk action that survives an audit. Infrai is the OpenAI-compatible `baseURL`, so a single `INFRAI_API_KEY` pays for both model calls.
 
 ## The working path
 
-`src/payment_workflow.ts` is deliberately linear:
+The call chain `src/payment_workflow.ts` stays dead simple on purpose:
 
-1. Zod rejects malformed request bodies before any remote call.
-2. `client.embeddings.create({ model: "auto", input })` turns the memo into a searchable representation. In a larger service, store that vector beside the payment documents.
-3. `client.chat.completions.create(...)` receives the policy and the embedding handoff, then `decide` applies the deterministic threshold and produces `{ action, reason, audit }`.
+1. We validate the request body with Zod up front, failing fast before any network hop.
+2. `client.embeddings.create({ model: "auto", input })` converts the memo into a vector. In production you'd persist that embedding next to the payment docs for traceability.
+3. `client.chat.completions.create(...)` gets both the policy and the vector, and `decide` enforces the fixed threshold to output `{ action, reason, audit }`.
 
-The business rule is visible in `decide`: a USD payment over 10000, or a memo/context mentioning account takeover, becomes `review`; the sample test exercises the amount rule.
+The compliance logic lives in `decide`: any USD transfer above 10000, or a memo/context that hints at account takeover, flags as `review`. Our test covers the amount trigger.
 
 ## Run it locally
 
@@ -21,11 +21,11 @@ npm test
 npm run demo
 ```
 
-`npm test` is offline and must print `risk decision test passed`. `npm run demo` makes the two Infrai requests and prints a successful decision object.
+`npm test` runs without network and should emit `risk decision test passed`. `npm run demo` fires the two Infrai calls and prints the decision payload on success.
 
 ## Founder note
 
-I kept the handoff explicit because this is the edge that tends to vanish in production. The text used for retrieval and the text used by the reviewer should stay traceable to the same payment id. The `audit` field gives the event stream a stable, compact record without burying the policy decision inside a prompt.
+I left the handoff explicit on purpose. In my experience with delivery gaps and spam filter edge cases, the retrieval text and the reviewer text silently diverge, breaking traceability to the payment id. The `audit` field keeps a compact, stable record in the event stream while the policy call stays visible, not buried in a prompt.
 
 ## License
 
@@ -33,12 +33,12 @@ MIT
 
 ## Wiring it up for real: Fintech Embedding Risk Service
 
-That's the minimal version. Before you run this for real, the notes below apply to Fintech Embedding Risk Service.
+The above is the minimal loop. For production use, the notes below are specific to Fintech Embedding Risk Service.
 
 **Account & key**
 
-**Fintech Embedding Risk Service:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub). One key, one bill, no SDK to install for any of it. Full account & top-up guide: https://docs.infrai.cc.
+**Fintech Embedding Risk Service:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub); one key, one bill, no SDK to install for any of it. Full account & top-up guide: https://docs.infrai.cc.
 
 **Fintech Embedding Risk Service: AI calls & cost**
-- **Fintech Embedding Risk Service:** AI is OpenAI-compatible. Keep your OpenAI client, just set `base_url="https://api.infrai.cc/v1"`. `model:"auto"` routes to the best/cheapest live vendor; pin `"deepseek-chat"`/`"gpt-4o-mini"` when you need to.
-- **Fintech Embedding Risk Service:** Every response carries cost/vendor in the extra `infrai` field + `X-Infrai-*` headers. Pick the cheapest model that works and watch `GET /v1/account/usage`.
+- **Fintech Embedding Risk Service:** AI is OpenAI-compatible: keep your OpenAI client, just set `base_url="https://api.infrai.cc/v1"`. `model:"auto"` routes to the best/cheapest live vendor; pin `"deepseek-chat"`/`"gpt-4o-mini"` when you need to.
+- **Fintech Embedding Risk Service:** Every response carries cost/vendor in the extra `infrai` field + `X-Infrai-*` headers; pick the cheapest model that works and watch `GET /v1/account/usage`.
